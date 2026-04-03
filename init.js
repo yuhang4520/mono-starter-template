@@ -176,7 +176,9 @@ async function main() {
   
   // 更新 apps 配置
   log('\n更新应用配置...', 'blue');
+  replaceInFile(path.join(ROOT, 'apps/api/package.json'), replacements);
   replaceInFile(path.join(ROOT, 'apps/api/.env.example'), replacements);
+  replaceInFile(path.join(ROOT, 'apps/admin/package.json'), replacements);
   replaceInFile(path.join(ROOT, 'apps/admin/.env.example'), replacements);
   replaceInFile(path.join(ROOT, 'apps/app/package.json'), replacements);
   replaceInFile(path.join(ROOT, 'apps/app/env/.env.example'), replacements);
