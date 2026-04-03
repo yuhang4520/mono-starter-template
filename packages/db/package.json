@@ -28,9 +28,8 @@
   },
   "scripts": {
     "generate": "drizzle-kit generate",
-    "with-env": "DOTENV_CONFIG_PATH=../../apps/admin/.env",
-    "push": "drizzle-kit push ",
-    "kit": "drizzle-kit",
-    "migrate": "drizzle-kit migrate"
+    "push": "tsx --env-file=../../apps/admin/.env node_modules/.bin/drizzle-kit push",
+    "migrate": "tsx --env-file=../../apps/admin/.env node_modules/.bin/drizzle-kit migrate",
+    "kit": "tsx --env-file=../../apps/admin/.env node_modules/.bin/drizzle-kit"
   }
 }

@@ -2,50 +2,21 @@
 
 一个全栈 Monorepo 启动模板，包含管理后台（Next.js）、后端 API（Fastify + tRPC）、多端应用（uni-app）和共享数据库层（Drizzle ORM）。
 
-## 项目结构
-
-```
-.
-├── apps/
-│   ├── admin/     # 管理后台 (Next.js 16 + React 19)
-│   ├── api/       # 后端 API (Fastify + tRPC)
-│   └── app/       # 多端客户端 (uni-app + Vue 3)
-├── packages/
-│   ├── db/        # 数据库 Schema 和客户端 (Drizzle ORM + PostgreSQL)
-│   └── tsconfig/  # 共享 TypeScript 配置
-└── ...
-```
-
-## 技术栈
-
-### 管理后台 (@your-project/admin)
-- **框架**: Next.js 16, React 19
-- **UI 组件**: Radix UI, shadcn/ui 风格
-- **表单**: React Hook Form + Zod
-- **表格**: TanStack Table
-- **国际化**: next-intl
-- **样式**: Tailwind CSS v4
-
-### 后端 API (@your-project/api)
-- **框架**: Fastify 5
-- **RPC**: tRPC 11 (端到端类型安全)
-- **认证**: Better Auth
-- **验证**: Zod
-- **日志**: Pino
-
-### 多端应用 (@your-project/app)
-- **框架**: uni-app + Vue 3
-- **构建**: Vite 5
-- **状态管理**: Pinia
-- **UI**: uni-ui + UnoCSS
-- **多端支持**: 微信小程序、支付宝小程序、H5 等
-
-### 数据库 (@your-project/db)
-- **ORM**: Drizzle ORM
-- **数据库**: PostgreSQL
-- **迁移**: Drizzle Kit
-
 ## 快速开始
+
+### 0. 初始化项目（可选）
+
+如果需要自定义项目前缀或自动配置端口，运行初始化脚本：
+
+```bash
+node init.js
+```
+
+脚本会自动：
+- 替换包名前缀（默认 `@your-project` → 自定义）
+- 检测并分配可用端口（避免冲突）
+- 生成随机密钥
+- 创建 `.env` 文件
 
 ### 1. 安装依赖
 
@@ -53,7 +24,7 @@
 pnpm install
 ```
 
-### 2. 配置环境变量
+### 2. 手动配置（如果不使用 init 脚本）
 
 ```bash
 # 复制示例环境文件
@@ -75,6 +46,10 @@ docker compose up -d
 
 ### 4. 数据库迁移
 
+如果使用了 `docker-init` 初始化脚本（默认已配置），数据库会在首次启动时自动创建表结构。
+
+否则手动执行迁移：
+
 ```bash
 cd packages/db
 pnpm drizzle-kit push
@@ -95,27 +70,56 @@ pnpm --filter @your-project/app dev:mp-weixin
 
 ## 访问地址
 
-| 服务 | URL |
-|------|-----|
-| 管理后台 | http://localhost:3000 |
-| API 服务 | http://localhost:4000 |
-| tRPC Playground | http://localhost:4000/api/trpc |
-| Health Check | http://localhost:4000/health |
+| 服务 | URL | 说明 |
+|------|-----|------|
+| 管理后台 | http://localhost:3000 | Next.js Admin Dashboard |
+| API 服务 | http://localhost:4000 | Fastify + tRPC |
+| tRPC Playground | http://localhost:4000/api/trpc | tRPC 调试 |
+| Health Check | http://localhost:4000/health | 健康检查 |
+| App H5 | http://localhost:5173 | uni-app H5 |
+| PostgreSQL | localhost:5342 | 数据库 |
+| MinIO Console | http://localhost:9001 | 对象存储管理 |
+
+## 故障排查
+
+### 端口冲突
+
+如果端口被占用，可使用初始化脚本自动检测并分配可用端口：
+
+```bash
+node init.js
+```
+
+或手动修改：
+- `docker-compose.yaml` - 修改容器端口映射
+- `apps/*/.env*` - 修改应用监听端口
 
 ## 自定义包名
 
-本项目使用 `@your-project/*` 作为包名占位符。使用前请全局替换：
+推荐使用初始化脚本自动替换：
+
+```bash
+node init.js
+```
+
+或手动全局替换 `@your-project` 为你的包名前缀：
 
 ```bash
 # macOS/Linux
 find . -type f -name "*.json" -o -name "*.ts" -o -name "*.tsx" | \
   xargs sed -i '' 's/@your-project/@your-actual-prefix/g'
-
-# 或手动替换以下文件：
-# - pnpm-workspace.yaml
-# - apps/*/package.json
-# - apps/*/README.md
 ```
+
+## 初始化脚本 (init.js)
+
+`init.js` 是一个交互式初始化向导，会帮助你：
+
+1. **自定义包名前缀** - 将 `@your-project/*` 替换为你的组织前缀
+2. **自动检测可用端口** - 避免与现有服务冲突
+3. **生成安全密钥** - 为 BETTER_AUTH_SECRET 和 AUTH_SECRET 生成随机值
+4. **创建环境文件** - 自动复制并配置所有 `.env` 文件
+
+运行一次即可，之后无需再次执行。
 
 ## Docker 构建
 
