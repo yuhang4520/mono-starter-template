@@ -11,8 +11,8 @@ export default defineUniPages({
   },
   pages: [],
   globalStyle: {
-    pageOrientation: 'landscape',
-    screenOrientation: 'landscape',
+    pageOrientation: 'portrait',
+    screenOrientation: 'portrait',
     navigationStyle: 'custom',
     dynamicRpx: true,
   },
