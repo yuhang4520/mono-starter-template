@@ -1,0 +1,39 @@
+{
+  "name": "@your-project/api",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.20.0",
+  "dependencies": {
+    "@aws-sdk/client-s3": "catalog:",
+    "@aws-sdk/lib-storage": "catalog:",
+    "@aws-sdk/s3-request-presigner": "catalog:",
+    "@fastify/cors": "catalog:",
+    "@fastify/multipart": "catalog:",
+    "@trpc/server": "catalog:",
+    "better-auth": "catalog:",
+    "crypto-js": "catalog:",
+    "db": "workspace:*",
+    "dotenv": "catalog:",
+    "fastify": "catalog:",
+    "jose": "catalog:",
+    "pino": "catalog:",
+    "superjson": "catalog:",
+    "zod": "catalog:",
+    "openai": "catalog:"
+  },
+  "devDependencies": {
+    "@types/cors": "catalog:",
+    "@types/crypto-js": "catalog:",
+    "@types/node": "^24.10.1",
+    "@types/pg": "catalog:",
+    "esbuild": "catalog:",
+    "tsconfig": "workspace:*",
+    "typescript": "catalog:"
+  },
+  "scripts": {
+    "dev": "tsx --watch src/main.ts",
+    "dev:debug": "node --inspect-brk --enable-source-maps ./node_modules/tsx/dist/cli.mjs src/main.ts",
+    "build": "esbuild --platform=node --target=es2023 --outdir=dist --bundle --minify --sourcemap src/main.ts",
+    "type-check": "tsc --noEmit"
+  }
+}

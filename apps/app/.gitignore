@@ -1,0 +1,29 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+.DS_Store
+dist
+*.local
+
+# Editor directories and files
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# vite-plugin-auto-import 生成的类型文件
+auto-import.d.ts
+# vite-plugin-uni-pages 生成的类型文件
+uni-pages.d.ts
+# vite-plugin-uni-components 生成的类型文件
+types/components.d.ts
+types/uni-pages.d.ts

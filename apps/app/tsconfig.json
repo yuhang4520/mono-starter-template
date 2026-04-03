@@ -1,0 +1,20 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.json",
+  "compilerOptions": {
+    "lib": ["esnext", "dom"],
+    "baseUrl": ".",
+    "moduleResolution": "bundler",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@your-project/api": ["../api/src/router"]
+    },
+    "types": ["@dcloudio/types", "@uni-helper/vite-plugin-uni-pages", "@uni-helper/uni-ui-types"],
+    "noImplicitAny": false,
+    "importsNotUsedAsValues": "remove",
+    "preserveValueImports": false,
+    "sourceMap": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "exclude": ["node_modules", "dist"]
+}

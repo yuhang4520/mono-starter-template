@@ -1,0 +1,22 @@
+# ---- TERRAFORM LOCAL STATE ----
+terraform.tfstate
+terraform.tfstate.backup
+
+# Local crash logs
+crash.log
+crash.*.log
+
+# ---- TERRAFORM WORKING DIRECTORY ----
+.terraform/
+
+# Generated plan files
+*.tfplan
+*.out
+
+# Variable files that contain secrets
+*.tfvars
+*.tfvars.json
+
+# ENV files (if you use them)
+.env
+.env.*

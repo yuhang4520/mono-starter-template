@@ -1,0 +1,14 @@
+{
+  "folders": [
+    { "path": "." },
+    { "path": "./apps/app" }
+  ],
+  "settings": {
+    "typescript.tsdk": "apps/api/node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "files.associations": {
+      "**/pages.json": "jsonc",
+      "**/manifest.json": "jsonc"
+    }
+  }
+}

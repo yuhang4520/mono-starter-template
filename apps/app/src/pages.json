@@ -1,0 +1,26 @@
+{
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^uni-(.*)": "@dcloudio/uni-ui/lib/uni-$1/uni-$1.vue"
+    }
+  },
+  "globalStyle": {
+    "navigationStyle": "custom"
+  },
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "type": "home"
+    },
+    {
+      "path": "pages/login/login",
+      "type": "page"
+    },
+    {
+      "path": "pages/webView/index",
+      "type": "page"
+    }
+  ],
+  "subPackages": []
+}
