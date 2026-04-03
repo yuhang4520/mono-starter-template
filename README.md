@@ -2,6 +2,35 @@
 
 一个全栈 Monorepo 启动模板，包含管理后台（Next.js）、后端 API（Fastify + tRPC）、多端应用（uni-app）和共享数据库层（Drizzle ORM）。
 
+## 核心特性
+
+- 🔐 **权限管理系统** - Better Auth 内置平台级权限（admin/user）和多租户权限（owner/admin/member），支持细粒度权限控制
+- 🏢 **多租户支持** - 基于 Organization 插件实现租户隔离
+- 📱 **多端应用** - uni-app 支持微信小程序、H5、App
+- 🔒 **认证系统** - 手机号/用户名登录，自动管理员分配
+
+## 技术架构
+
+**Monorepo 结构**（pnpm workspaces）：
+
+```
+apps/
+  admin/  - Next.js 16 + React 19 管理后台
+            ├── Better Auth 认证与权限管理
+            ├── shadcn/ui 组件库
+            └── TanStack Table + React Hook Form
+  api/    - Fastify 5 + tRPC 11 后端服务
+            ├── Better Auth 服务端 + 权限验证
+            └── tRPC Router（类型安全 API）
+  app/    - uni-app + Vue 3 多端客户端
+            └── 微信小程序/H5/App 多端支持
+packages/
+  db/     - Drizzle ORM + PostgreSQL Schema
+            └── 认证表 + 业务表定义
+```
+
+**数据流**: admin/app → tRPC Client → Fastify/tRPC Server → Drizzle → PostgreSQL
+
 ## 快速开始
 
 ### 0. 初始化项目（可选）
@@ -61,24 +90,28 @@ pnpm drizzle-kit push
 # 终端 1: API 服务
 pnpm --filter @your-project/api dev
 
-# 终端 2: 管理后台
+# 终端 2: 管理后台（含权限管理功能）
 pnpm --filter @your-project/admin dev
 
 # 终端 3: 多端应用 (微信小程序示例)
 pnpm --filter @your-project/app dev:mp-weixin
 ```
 
+> 💡 **提示**: 运行 `node init.js` 可自动将包名 `@your-project` 替换为你自定义的前缀
+
 ## 访问地址
 
 | 服务 | URL | 说明 |
 |------|-----|------|
-| 管理后台 | http://localhost:3000 | Next.js Admin Dashboard |
+| 管理后台 | http://localhost:3000 | Next.js Admin Dashboard（含权限管理） |
 | API 服务 | http://localhost:4000 | Fastify + tRPC |
 | tRPC Playground | http://localhost:4000/api/trpc | tRPC 调试 |
 | Health Check | http://localhost:4000/health | 健康检查 |
 | App H5 | http://localhost:5173 | uni-app H5 |
 | PostgreSQL | localhost:5342 | 数据库 |
 | MinIO Console | http://localhost:9001 | 对象存储管理 |
+
+> 💡 **提示**: 首次登录时，使用 `ADMIN_PHONE` 环境变量中配置的手机号登录会自动成为管理员，可进行用户管理和角色分配。
 
 ## 故障排查
 
