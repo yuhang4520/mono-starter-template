@@ -132,6 +132,7 @@ async function main() {
   const secrets = {
     betterAuth: generateSecret(),
     auth: generateSecret(),
+    dbPassword: 'example', // 与 docker-compose.yaml 中的 POSTGRES_PASSWORD 保持一致
   };
   
   log('\n端口分配:', 'blue');
@@ -155,6 +156,8 @@ async function main() {
     ':3000': `:${ports.admin}`,
     ':5173': `:${ports.app}`,
     ':9001': `:${ports.minio}`,
+    'postgres://postgres:postgres@': `postgres://postgres:${secrets.dbPassword}@`,
+    ':5342/starter': `:${ports.db}/starter`,
     'Pzn93oLl7VLJ376sG/T9Cx0Fg6QK2tcvM4qBOl6VtV4=': secrets.betterAuth,
     'replace-with-a-random-secret': secrets.auth,
   };

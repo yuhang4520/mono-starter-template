@@ -1,5 +1,11 @@
-import "dotenv/config";
 import { defineConfig } from "drizzle-kit";
+import dotenv from "dotenv";
+import path from "path";
+
+// 加载 apps/admin/.env 文件（包含 DATABASE_URL 等环境变量）
+dotenv.config({
+  path: path.resolve(__dirname, "../../apps/admin/.env"),
+});
 
 export default defineConfig({
   out: "./drizzle",

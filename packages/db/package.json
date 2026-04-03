@@ -28,8 +28,8 @@
   },
   "scripts": {
     "generate": "drizzle-kit generate",
-    "push": "tsx --env-file=../../apps/admin/.env node_modules/.bin/drizzle-kit push",
-    "migrate": "tsx --env-file=../../apps/admin/.env node_modules/.bin/drizzle-kit migrate",
-    "kit": "tsx --env-file=../../apps/admin/.env node_modules/.bin/drizzle-kit"
+    "push": "drizzle-kit push",
+    "migrate": "drizzle-kit migrate",
+    "kit": "drizzle-kit"
   }
 }
