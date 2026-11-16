@@ -8,6 +8,20 @@
       "when": 1775225492473,
       "tag": "0000_clever_catseye",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794831303565,
+      "tag": "0001_stormy_absorbing_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794831347710,
+      "tag": "0002_fine_invisible_woman",
+      "breakpoints": true
     }
   ]
 }

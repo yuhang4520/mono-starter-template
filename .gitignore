@@ -54,3 +54,11 @@ test-results/
 # temp files
 *.tmp
 *.temp
+
+# template initialization metadata
+.template-initialized.json
+# infrastructure local state/credentials
+**/.terraform/
+**/*.tfstate*
+**/*.tfvars
+**/kubeconfig*

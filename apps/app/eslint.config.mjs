@@ -8,6 +8,7 @@ export default uniHelper({
     // 忽略uni_modules目录
     '**/uni_modules/',
     'dist',
+    '.hbuilderx/**',
     // unplugin-auto-import 生成的类型文件，每次提交都改变，所以加入这里吧，与 .gitignore 配合使用
     'auto-import.d.ts',
     // vite-plugin-uni-pages 生成的类型文件，每次切换分支都一堆不同的，所以直接 .gitignore
@@ -18,6 +19,8 @@ export default uniHelper({
   ],
   rules: {
     'no-useless-return': 'off',
+    // The starter uses Node's built-in test runner.
+    'test/no-import-node-test': 'off',
     'no-console': 'off',
     'no-unused-vars': 'off',
     'vue/no-unused-refs': 'off',

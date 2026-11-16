@@ -3,6 +3,24 @@
   "private": true,
   "packageManager": "pnpm@10.26.2+sha512.0e308ff2005fc7410366f154f625f6631ab2b16b1d2e70238444dd6ae9d630a8482d92a451144debc492416896ed16f7b114a86ec68b8404b2443869e68ffda6",
   "devDependencies": {
-    "@iconify-json/material-symbols": "catalog:"
+    "@iconify-json/material-symbols": "catalog:",
+    "tsx": "catalog:",
+    "dotenv": "catalog:",
+    "yaml": "2.8.3"
+  },
+  "scripts": {
+    "init": "node init.js",
+    "dev:api": "pnpm --dir apps/api dev",
+    "dev:admin": "pnpm --dir apps/admin dev",
+    "dev:app": "pnpm --dir apps/app dev:h5",
+    "infra:up": "docker compose up -d --wait db minio && docker compose run --rm minio_init",
+    "db:generate": "pnpm --dir packages/db generate",
+    "db:migrate": "pnpm --dir packages/db migrate",
+    "type-check": "pnpm --dir apps/api type-check && pnpm --dir apps/admin type-check && pnpm --dir apps/app type-check",
+    "test:init": "node --test scripts/init.test.cjs",
+    "test:scripts": "node --test scripts/*.test.cjs scripts/*.test.mjs scripts/native/*.test.cjs && python3 -B -m unittest discover -s scripts/native -p \"test_*.py\"",
+    "test": "pnpm test:scripts && pnpm --dir apps/api test && pnpm --dir apps/admin test && pnpm --dir apps/app test",
+    "build": "pnpm --dir apps/api build && pnpm --dir apps/admin build && pnpm --dir apps/app build:h5 && pnpm --dir apps/app build:mp-weixin",
+    "bootstrap:admin": "node --import tsx scripts/bootstrap-admin.mts"
   }
 }

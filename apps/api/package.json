@@ -19,7 +19,8 @@
     "pino": "catalog:",
     "superjson": "catalog:",
     "zod": "catalog:",
-    "openai": "catalog:"
+    "openai": "catalog:",
+    "@your-project/workspace": "workspace:*"
   },
   "devDependencies": {
     "@types/cors": "catalog:",
@@ -28,12 +29,14 @@
     "@types/pg": "catalog:",
     "esbuild": "catalog:",
     "tsconfig": "workspace:*",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "tsx": "catalog:"
   },
   "scripts": {
     "dev": "tsx --watch src/main.ts",
     "dev:debug": "node --inspect-brk --enable-source-maps ./node_modules/tsx/dist/cli.mjs src/main.ts",
     "build": "esbuild --platform=node --target=es2023 --outdir=dist --bundle --minify --sourcemap src/main.ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "node --import tsx --test src/**/*.test.ts"
   }
 }

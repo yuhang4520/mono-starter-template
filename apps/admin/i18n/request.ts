@@ -16,7 +16,7 @@ export default getRequestConfig(async () => {
     const languages = new Negotiator({ headers: negotiatorHeaders }).languages(
       locales,
     );
-    locale = match(languages, locales, "en");
+    locale = match(languages, locales, "zh");
   }
 
   return {

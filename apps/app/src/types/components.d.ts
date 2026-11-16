@@ -7,32 +7,13 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
-    AssignmentCard: typeof import('./../components/assignment/Card.vue')['default']
-    AssignmentGroupList: typeof import('./../components/assignment/GroupList.vue')['default']
     Demo: typeof import('./../components/Demo.vue')['default']
-    LibraryBookCard: typeof import('./../components/library/book/Card.vue')['default']
-    LibraryBookSwiperList: typeof import('./../components/library/book/SwiperList.vue')['default']
-    LibraryBookUtitCard: typeof import('./../components/library/book/UtitCard.vue')['default']
-    LibraryHomeCard: typeof import('./../components/library/HomeCard.vue')['default']
-    LibraryListCard: typeof import('./../components/library/ListCard.vue')['default']
-    QuizCard: typeof import('./../components/quiz/Card.vue')['default']
-    QuizOptionItem: typeof import('./../components/quiz/OptionItem.vue')['default']
-    ReadingAiPopup: typeof import('./../components/reading/AiPopup.vue')['default']
-    ReadingCard: typeof import('./../components/reading/Card.vue')['default']
-    ReadingRecordingButton: typeof import('./../components/reading/RecordingButton.vue')['default']
-    ReadingScoredText: typeof import('./../components/reading/ScoredText.vue')['default']
-    ReadingSwiperList: typeof import('./../components/reading/SwiperList.vue')['default']
-    UiAudioPlayer: typeof import('./../components/ui/AudioPlayer.vue')['default']
+    LegalLinks: typeof import('./../components/LegalLinks.vue')['default']
     UiBackground: typeof import('./../components/ui/Background.vue')['default']
     UiCustomNavBar: typeof import('./../components/ui/CustomNavBar.vue')['default']
     UiEmpty: typeof import('./../components/ui/Empty.vue')['default']
-    UiHomeCard: typeof import('./../components/ui/HomeCard.vue')['default']
-    UiLayoutGuard: typeof import('./../components/ui/LayoutGuard.vue')['default']
     UiPreviewImageBtn: typeof import('./../components/ui/PreviewImageBtn.vue')['default']
     UiScrollView: typeof import('./../components/ui/ScrollView.vue')['default']
     UiTooltip: typeof import('./../components/ui/Tooltip.vue')['default']
-    UserInfoCard: typeof import('./../components/UserInfoCard.vue')['default']
-    VideoPlayer: typeof import('./../components/VideoPlayer.vue')['default']
-    WatchingList: typeof import('./../components/WatchingList.vue')['default']
   }
 }

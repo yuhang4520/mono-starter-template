@@ -1,7 +1,7 @@
-"use client";
+'use client'
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardAction,
@@ -9,63 +9,62 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Controller, SubmitHandler, useForm } from "react-hook-form";
-import { authClient } from "@/lib/auth-client";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+} from '@/components/ui/card'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Controller, SubmitHandler, useForm } from 'react-hook-form'
+import { authClient } from '@/lib/auth-client'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
   InputGroupText,
-} from "@/components/ui/input-group";
-import { useExtracted } from "next-intl";
-import LanguageSwitcher from "@/components/language-switcher";
+} from '@/components/ui/input-group'
+import { useTranslations } from 'next-intl'
+import LanguageSwitcher from '@/components/language-switcher'
 
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) {
   type LoginFormValues = {
-    phone: string;
-    password: string;
-  };
+    phone: string
+    password: string
+  }
 
-  const t = useExtracted();
-  const router = useRouter();
-  const { handleSubmit, control } = useForm<LoginFormValues>();
+  const t = useTranslations('auth')
+  const router = useRouter()
+  const {
+    handleSubmit,
+    control,
+    formState: { isSubmitting },
+  } = useForm<LoginFormValues>()
 
-  const onSubmit: SubmitHandler<LoginFormValues> = async (values) => {
-    await authClient.signIn.phoneNumber({
-      phoneNumber: values.phone,
-      password: values.password,
-      fetchOptions: {
-        onError(context) {
-          toast.error(context.error.message, { position: "bottom-center" });
+  const onSubmit: SubmitHandler<LoginFormValues> = async values => {
+    try {
+      await authClient.signIn.phoneNumber({
+        phoneNumber: values.phone,
+        password: values.password,
+        fetchOptions: {
+          onError(context) {
+            toast.error(context.error.message, { position: 'bottom-center' })
+          },
+          onSuccess() {
+            router.replace('/')
+            router.refresh()
+          },
         },
-        onSuccess() {
-          router.replace("/");
-        },
-      },
-    });
-  };
+      })
+    } catch {
+      toast.error('网络异常，请稍后重试')
+    }
+  }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className={cn('flex flex-col gap-6', className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle>{t("Login to your account")}</CardTitle>
-          <CardDescription>
-            {t("Enter your phone number below to login to your account")}
-          </CardDescription>
+          <CardTitle>{t('loginTitle')}</CardTitle>
+          <CardDescription>{t('loginDescription')}</CardDescription>
           <CardAction>
             <LanguageSwitcher />
           </CardAction>
@@ -79,12 +78,19 @@ export function LoginForm({
                 defaultValue=""
                 render={({ field }) => (
                   <Field>
-                    <FieldLabel htmlFor="phone">{t("Phone number")}</FieldLabel>
+                    <FieldLabel htmlFor="phone">{t('phone')}</FieldLabel>
                     <InputGroup>
                       <InputGroupAddon>
                         <InputGroupText>+86 </InputGroupText>
                       </InputGroupAddon>
-                      <InputGroupInput id="phone" type="tel" {...field} />
+                      <InputGroupInput
+                        id="phone"
+                        type="tel"
+                        required
+                        pattern="1[0-9]{10}"
+                        autoComplete="username"
+                        {...field}
+                      />
                     </InputGroup>
                   </Field>
                 )}
@@ -96,25 +102,24 @@ export function LoginForm({
                 render={({ field }) => (
                   <Field>
                     <div className="flex items-center">
-                      <FieldLabel htmlFor="password">
-                        {t("Password")}
-                      </FieldLabel>
-                      <a
-                        href="#"
-                        className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                      >
-                        {t("Forgot your password?")}
-                      </a>
+                      <FieldLabel htmlFor="password">{t('password')}</FieldLabel>
                     </div>
-                    <Input id="password" type="password" required {...field} />
+                    <Input
+                      id="password"
+                      type="password"
+                      required
+                      autoComplete="current-password"
+                      {...field}
+                    />
                   </Field>
                 )}
               />
               <Field>
-                <Button type="submit">{t("Login")}</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? '登录中…' : t('login')}
+                </Button>
                 <FieldDescription className="text-center">
-                  {t("Don't have an account?")}{" "}
-                  <a href="/signup">{t("Sign up")}</a>
+                  {t('noAccount')} <a href="/signup">{t('signup')}</a>
                 </FieldDescription>
               </Field>
             </FieldGroup>
@@ -122,5 +127,5 @@ export function LoginForm({
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

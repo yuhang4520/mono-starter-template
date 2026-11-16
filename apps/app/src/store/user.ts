@@ -1,39 +1,19 @@
+import type { UserInfo } from '@/types/user'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { authSession, clearTokens } from '@/utils/auth'
 
-export interface UserInfo {
-  id: string
-  name: string
-  email?: string
-  phoneNumber?: string
-}
+export const useUserStore = defineStore('user', () => {
+  const userInfo = ref<UserInfo | null>(null)
+  authSession.onClear(() => {
+    userInfo.value = null
+  })
+  const setUserInfo = (info: UserInfo) => {
+    userInfo.value = info
+  }
+  const logout = () => {
+    clearTokens()
+  }
 
-export const useUserStore = defineStore(
-  'user',
-  () => {
-    const userInfo = ref<UserInfo>({
-      id: '-1',
-      name: '',
-    })
-
-    const setUserInfo = (info: UserInfo) => {
-      userInfo.value = info
-    }
-
-    const logout = () => {
-      userInfo.value = {
-        id: '-1',
-        name: '',
-      }
-    }
-
-    return {
-      userInfo,
-      setUserInfo,
-      logout,
-    }
-  },
-  {
-    persist: true,
-  },
-)
+  return { userInfo, setUserInfo, logout }
+}, { persist: true })

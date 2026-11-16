@@ -24,7 +24,6 @@ export default defineConfig(({ command, mode }) => {
   const uniPlatform = process.env.UNI_PLATFORM || ''
   const unoMode = uniPlatform.startsWith('mp-') ? 'per-module' : 'global'
   console.log('command, mode -> ', command, mode)
-  console.log('环境变量 env -> ', env)
   console.log('UNI_PLATFORM -> ', uniPlatform, 'UnoCSS mode -> ', unoMode)
   const genMaps = VITE_SHOW_SOURCEMAP === 'true'
 

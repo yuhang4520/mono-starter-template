@@ -1,56 +1,42 @@
+import type { Operation } from '@trpc/client'
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server'
-import type { AppRouter, OriginalType, zOriginalType } from '@your-project/api'
-import {
-  createTRPCProxyClient,
-  httpBatchLink,
-  httpSubscriptionLink,
-  splitLink,
-} from '@trpc/client'
-import { getAccessToken, getRefreshToken } from '@/utils/auth'
+import type { AppRouter } from '@your-project/api'
+import { createTRPCProxyClient, httpBatchLink, httpLink, splitLink } from '@trpc/client'
+import { getAccessToken, getAuthSessionVersion, getRefreshToken, handleAuthFailure, performTokenRefresh } from '@/utils/auth'
+import { createAuthRetryLink } from '@/utils/authRetryLink'
+import { fetchWithTimeout } from '@/utils/fetchWithTimeout'
 import { identityTransformer } from '@/utils/identityTransformer'
 import { createUniRequestLink } from '@/utils/uniRequestLink'
+import { getClientHeaders } from './clientHeaders'
 import '@/utils/polyfills'
 
 export type RouterOutput = inferRouterOutputs<AppRouter>
 export type RouterInput = inferRouterInputs<AppRouter>
-export type { OriginalType }
-export type { zOriginalType }
 
-const endpointURL = `${import.meta.env.VITE_SERVER_URL}/api/trpc`
-const isWechatMp = typeof wx !== 'undefined'
+const url = `${import.meta.env.VITE_SERVER_URL}/api/trpc`
+let nativeTransport = false
+// #ifdef MP || APP-PLUS || APP-HARMONY
+nativeTransport = true
+// #endif
 
-console.log('[TRPC] Initializing client for', isWechatMp ? 'Wechat MP' : 'H5/Other')
-console.log('[TRPC] endpointURL', endpointURL)
+function headers(operations: Operation[]): Record<string, string> {
+  if (operations.some(op => op.context.authSessionVersion !== getAuthSessionVersion()))
+    throw new Error('登录状态已变更，请重试')
+  const token = operations[0]?.path === 'auth.refresh' ? getRefreshToken() : getAccessToken()
+
+  return { ...getClientHeaders(), ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+}
+
 export const trpc = createTRPCProxyClient<AppRouter>({
   links: [
-    isWechatMp
-      ? createUniRequestLink({
-          url: endpointURL,
-          transformer: identityTransformer,
-          headers: ({ op }) => {
-            // 刷新时使用 refresh token, 其他时候使用 access token
-            const token = op.path === 'auth.refresh' ? getRefreshToken() : getAccessToken()
-
-            return token ? { Authorization: `Bearer ${token}` } : {}
-          },
-        })
+    createAuthRetryLink({ getVersion: getAuthSessionVersion, refresh: performTokenRefresh, expired: handleAuthFailure }),
+    nativeTransport
+      ? createUniRequestLink({ url, headers: op => headers([op]) })
       : splitLink({
-          condition: (op: any) => op.type === 'subscription',
-          true: httpSubscriptionLink({
-            url: endpointURL,
-            transformer: identityTransformer,
-          }),
-          false: httpBatchLink({
-            url: endpointURL,
-            transformer: identityTransformer,
-            headers: (opts) => {
-              // httpBatchLink passes opList
-              const isRefresh = opts.opList.some(op => op.path === 'auth.refresh')
-              const token = isRefresh ? getRefreshToken() : getAccessToken()
-
-              return token ? { Authorization: `Bearer ${token}` } : {}
-            },
-          }),
+          // Authentication operations never share a batch with ordinary access credentials.
+          condition: op => op.path.startsWith('auth.'),
+          true: httpLink({ url, fetch: fetchWithTimeout, transformer: identityTransformer, headers: ({ op }) => headers([op]) }),
+          false: httpBatchLink({ url, fetch: fetchWithTimeout, transformer: identityTransformer, headers: ({ opList }) => headers(opList) }),
         }),
   ],
 })

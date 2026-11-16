@@ -20,8 +20,15 @@ function getGlobal(): PolyfillTarget {
   if (typeof globalThis !== 'undefined')
     return globalThis
 
-  // Fallback for environments where globalThis is not natively available
-  return new Function('return this')() as PolyfillTarget
+  // eslint-disable-next-line no-restricted-globals -- fallback for runtimes without globalThis
+  if (typeof self !== 'undefined')
+    // eslint-disable-next-line no-restricted-globals -- same fallback
+    return self as PolyfillTarget
+  if (typeof window !== 'undefined')
+    return window as PolyfillTarget
+  if (typeof wx !== 'undefined')
+    return wx as PolyfillTarget
+  throw new Error('Unsupported JavaScript runtime')
 }
 
 const root = getGlobal()
@@ -31,10 +38,6 @@ const targets: PolyfillTarget[] = [root]
 
 if (typeof wx !== 'undefined')
   targets.push(wx)
-
-if (typeof global !== 'undefined') {
-  targets.push(global)
-}
 
 /**
  * Installs a polyfill on all detected global scopes.
@@ -66,6 +69,8 @@ if (
 
     onabort: ((event: any) => void) | null
 
+    listeners = new Set<(event: any) => void>()
+
     constructor() {
       this.aborted = false
       this.onabort = null
@@ -73,13 +78,12 @@ if (
 
     addEventListener(event: string, handler: (event: any) => void) {
       if (event === 'abort')
-        this.onabort = handler
+        this.listeners.add(handler)
     }
 
     removeEventListener(event: string, handler: (event: any) => void) {
-      if (event === 'abort' && this.onabort === handler) {
-        this.onabort = null
-      }
+      if (event === 'abort')
+        this.listeners.delete(handler)
     }
 
     static abort() {
@@ -101,9 +105,10 @@ if (
       if (this.signal.aborted)
         return
       this.signal.aborted = true
-      if (this.signal.onabort) {
-        this.signal.onabort({ type: 'abort', target: this.signal })
-      }
+      const event = { type: 'abort', target: this.signal }
+      this.signal.onabort?.(event)
+      this.signal.listeners.forEach(listener => listener(event))
+      this.signal.listeners.clear()
     }
   }
 

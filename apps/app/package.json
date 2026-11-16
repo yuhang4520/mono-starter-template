@@ -37,7 +37,12 @@
     "build:quickapp-webview-union": "uni build -p quickapp-webview-union",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint",
-    "lint:fix": "eslint --fix"
+    "lint:fix": "eslint --fix",
+    "test": "node --import tsx --test test/*.test.ts",
+    "dev:app": "uni -p app",
+    "dev:app-harmony": "uni -p app-harmony",
+    "build:app": "uni build -p app",
+    "build:app-harmony": "uni build -p app-harmony"
   },
   "dependencies": {
     "@dcloudio/uni-app": "catalog:",
@@ -60,12 +65,12 @@
     "@iconify/utils": "catalog:",
     "@trpc/client": "catalog:",
     "@uni-helper/unocss-preset-uni": "catalog:",
+    "@your-project/api": "workspace:*",
     "pinia": "catalog:",
     "pinia-plugin-persistedstate": "catalog:",
     "superjson": "catalog:",
     "vue": "catalog:",
-    "vue-i18n": "catalog:",
-    "@your-project/api": "workspace:*"
+    "vue-i18n": "catalog:"
   },
   "devDependencies": {
     "@dcloudio/types": "catalog:",
@@ -88,6 +93,7 @@
     "eslint-plugin-format": "catalog:",
     "sass": "catalog:",
     "terser": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "unocss": "catalog:",
     "unocss-applet": "catalog:",

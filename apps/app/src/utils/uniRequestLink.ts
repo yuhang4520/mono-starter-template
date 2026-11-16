@@ -1,100 +1,78 @@
-import type { TRPCLink } from '@trpc/client'
+import type { Operation, TRPCLink } from '@trpc/client'
 import type { AnyRouter } from '@trpc/server'
 import { TRPCClientError } from '@trpc/client'
 import { observable } from '@trpc/server/observable'
-import { performTokenRefresh } from './auth'
 
+/** Native transport only: retries and identity isolation live in authRetryLink. */
 export function createUniRequestLink<TRouter extends AnyRouter>(opts: {
   url: string
-  transformer?: any
-  headers?: Record<string, any> | ((opts: { op: any }) => Record<string, any> | Promise<Record<string, any>>)
+  headers?: (operation: Operation) => Record<string, string>
 }): TRPCLink<TRouter> {
-  return () => ({ op }) =>
-    observable((observer) => {
-      const { path, input, type } = op
+  return () => ({ op }) => observable((observer) => {
+    if (op.type === 'subscription') {
+      observer.error(TRPCClientError.from(new Error('当前传输不支持订阅')))
 
-      const transformer = opts.transformer || { serialize: v => v, deserialize: v => v }
-      const serializedInput = transformer.serialize(input)
+      return
+    }
+    if (op.signal?.aborted) {
+      observer.error(TRPCClientError.from(new Error('请求已取消')))
 
-      const method = type === 'query' ? 'GET' : 'POST'
-      let url = `${opts.url}/${path}`
-      let data: any = serializedInput
+      return
+    }
+    let cancelled = false
+    const query = op.type === 'query'
+    const input = op.input === undefined ? '' : `?input=${encodeURIComponent(JSON.stringify(op.input))}`
+    const task = uni.request({
+      url: `${opts.url}/${op.path}${query ? input : ''}`,
+      method: query ? 'GET' : 'POST',
+      data: query || op.input === undefined ? undefined : JSON.stringify(op.input),
+      timeout: 15000,
+      header: { 'content-type': 'application/json', ...opts.headers?.(op) },
+      dataType: 'text',
+      success(res) {
+        if (cancelled)
+          return
+        try {
+          const body = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
+          if (!body || typeof body !== 'object')
+            throw new Error('服务器响应格式错误')
+          if ('error' in body) {
+            observer.error(TRPCClientError.from(body))
 
-      if (method === 'GET') {
-        if (serializedInput !== undefined) {
-          url += `?input=${encodeURIComponent(JSON.stringify(serializedInput))}`
+            return
+          }
+          if (res.statusCode >= 400 || !('result' in body))
+            throw new Error(`请求失败 (${res.statusCode})`)
+          observer.next(body)
+          observer.complete()
         }
-        data = undefined
-      }
-
-      let requestTask: UniApp.RequestTask | null = null
-      let isRetried = false
-
-      const run = async () => {
-        const headers = typeof opts.headers === 'function' ? await opts.headers({ op }) : (opts.headers || {})
-
-        requestTask = uni.request({
-          url,
-          method,
-          data,
-          header: {
-            'content-type': 'application/json',
-            ...headers,
-          },
-          dataType: 'text',
-          success: async (res) => {
-            if (res.statusCode === 401 && !isRetried) {
-              console.log('[Link] 401 detected, attempting token refresh...')
-              try {
-                isRetried = true
-                await performTokenRefresh()
-
-                return run()
-              }
-              catch (refreshError) {
-                console.error('[Link] Token refresh failed during 401 interception:', refreshError)
-              }
-            }
-
-            let jsonDoc: any
-            try {
-              jsonDoc = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
-            }
-            catch (e) {
-              return observer.error(TRPCClientError.from(new Error('Invalid JSON response')))
-            }
-
-            const processResponse = (item: any) => {
-              if (item.error)
-                return item
-              if (item.result && item.result.data !== undefined) {
-                item.result.data = transformer.deserialize(item.result.data)
-              }
-
-              return item
-            }
-
-            const result = Array.isArray(jsonDoc)
-              ? jsonDoc.map(processResponse)
-              : processResponse(jsonDoc)
-
-            if (res.statusCode >= 400) {
-              observer.error(TRPCClientError.from(result))
-            }
-            else {
-              observer.next(result)
-              observer.complete()
-            }
-          },
-          fail: (err) => {
-            console.log('请求失败:', err)
-            observer.error(TRPCClientError.from(err))
-          },
-        })
-      }
-
-      run()
-
-      return () => requestTask?.abort()
+        catch (error) {
+          observer.error(TRPCClientError.from(error instanceof Error ? error : new Error('服务器响应格式错误')))
+        }
+      },
+      fail(error) {
+        if (!cancelled)
+          observer.error(TRPCClientError.from(new Error(error.errMsg || '网络连接失败')))
+      },
     })
+
+    const abort = () => {
+      if (!cancelled) {
+        cancelled = true
+        task.abort()
+        observer.error(TRPCClientError.from(new Error('请求已取消')))
+      }
+    }
+    op.signal?.addEventListener('abort', abort, { once: true })
+    if (op.signal?.aborted)
+      abort()
+
+    return () => {
+      op.signal?.removeEventListener('abort', abort)
+      if (!cancelled) {
+        cancelled = true
+        task.abort()
+      }
+    }
+  })
 }

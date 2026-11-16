@@ -1,0 +1,87 @@
+name: Build or publish client
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        type: choice
+        options: [h5, mp-weixin]
+        required: true
+      publish:
+        description: Publish after building (requires ENABLE_CLIENT_PUBLISH=true)
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: client-release-${{ inputs.platform }}
+  cancel-in-progress: false
+jobs:
+  client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: client-production
+    env:
+      VITE_DEPLOY_ENV: ${{ inputs.publish && 'production' || 'local' }}
+      VITE_SERVER_URL: ${{ vars.PUBLIC_API_URL || 'http://localhost:4000' }}
+      VITE_PRIVACY_URL: ${{ vars.PRIVACY_URL || 'http://localhost:3000/app-agreement/privacy' }}
+      VITE_AGREEMENT_URL: ${{ vars.AGREEMENT_URL || 'http://localhost:3000/app-agreement/user' }}
+      VITE_LEGAL_VERSION: ${{ vars.LEGAL_VERSION || '1' }}
+      VITE_APP_VERSION: 1.0.${{ github.run_number }}
+      CLIENT_PLATFORM: ${{ inputs.platform }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-project
+      - name: Validate release configuration
+        env:
+          PUBLISH: ${{ inputs.publish }}
+          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
+          ENABLE_CLIENT_PUBLISH: ${{ vars.ENABLE_CLIENT_PUBLISH }}
+          MP_WEIXIN_APP_ID: ${{ vars.MP_WEIXIN_APP_ID }}
+          LEGAL_VERSION: ${{ vars.LEGAL_VERSION }}
+        run: |
+          if [ "$PUBLISH" = true ]; then
+            test -n "$LEGAL_VERSION" || { echo 'Set LEGAL_VERSION before publishing'; exit 1; }
+            python3 scripts/native/legal_config.py
+            test -n "$PUBLIC_API_URL" || { echo 'Set PUBLIC_API_URL before publishing'; exit 1; }
+            test "$ENABLE_CLIENT_PUBLISH" = true || { echo 'Client publishing is disabled'; exit 1; }
+            test "$GITHUB_REF" = refs/heads/main || { echo 'Only main may publish'; exit 1; }
+          fi
+          if [ "$CLIENT_PLATFORM" = mp-weixin ]; then
+            node -e 'const fs=require("node:fs"); const path="apps/app/src/manifest.json"; const m=JSON.parse(fs.readFileSync(path)); if(!process.env.MP_WEIXIN_APP_ID && process.env.PUBLISH === "true") throw new Error("Set MP_WEIXIN_APP_ID"); if(process.env.MP_WEIXIN_APP_ID) m["mp-weixin"].appid=process.env.MP_WEIXIN_APP_ID; fs.writeFileSync(path,JSON.stringify(m,null,2));'
+          fi
+      - run: pnpm --dir apps/app type-check && pnpm --dir apps/app test
+      - name: Build selected platform
+        run: pnpm --dir apps/app "build:$CLIENT_PLATFORM"
+      - name: Check mini-program package budget
+        if: inputs.platform == 'mp-weixin'
+        run: node scripts/check-package-size.mjs apps/app/dist/build/mp-weixin
+      - name: Record build version
+        run: python3 scripts/native/client_release.py metadata
+      - uses: actions/upload-artifact@v4
+        with:
+          name: client-${{ inputs.platform }}-${{ github.sha }}
+          path: |
+            apps/app/dist/build/${{ inputs.platform }}/
+            client-release.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish H5 to S3-compatible storage
+        if: inputs.publish && inputs.platform == 'h5'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.CLIENT_STORAGE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CLIENT_STORAGE_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.CLIENT_STORAGE_SESSION_TOKEN }}
+          AWS_DEFAULT_REGION: ${{ vars.CLIENT_STORAGE_REGION }}
+          STORAGE_ENDPOINT: ${{ vars.CLIENT_STORAGE_ENDPOINT }}
+          STORAGE_BUCKET: ${{ vars.CLIENT_STORAGE_BUCKET }}
+          STORAGE_PREFIX: ${{ vars.CLIENT_H5_PREFIX || 'sites/app' }}
+        run: python3 scripts/native/client_release.py h5
+      - name: Install WeChat uploader
+        if: inputs.publish && inputs.platform == 'mp-weixin'
+        run: npm install --prefix "$RUNNER_TEMP/miniprogram-ci" --no-audit --no-fund miniprogram-ci@2.1.26 less@4.1.3
+      - name: Upload WeChat development version
+        if: inputs.publish && inputs.platform == 'mp-weixin'
+        env:
+          MP_WEIXIN_APP_ID: ${{ vars.MP_WEIXIN_APP_ID }}
+          MP_WEIXIN_UPLOAD_KEY: ${{ secrets.MP_WEIXIN_UPLOAD_KEY }}
+        run: python3 scripts/native/client_release.py weixin

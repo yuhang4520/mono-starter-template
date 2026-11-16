@@ -1,0 +1,9 @@
+{
+  "name": "@your-project/workspace",
+  "private": true,
+  "type": "module",
+  "exports": { ".": { "types": "./src/index.ts", "default": "./src/index.ts" } },
+  "dependencies": { "db": "workspace:*", "zod": "catalog:" },
+  "devDependencies": { "tsconfig": "workspace:*", "typescript": "catalog:" },
+  "scripts": { "type-check": "tsc --noEmit" }
+}

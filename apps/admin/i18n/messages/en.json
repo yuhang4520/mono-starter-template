@@ -35,5 +35,22 @@
   "Create an account": "Create an account",
   "Enter your information below to create your account": "Enter your information below to create your account",
   "Already have an account?": "Already have an account?",
-  "Sign in": "Sign in"
+  "Sign in": "Sign in",
+  "auth": {
+    "loginTitle": "Login to your account",
+    "loginDescription": "Enter your phone number below to login to your account",
+    "phone": "Phone number",
+    "password": "Password",
+    "login": "Login",
+    "noAccount": "Don't have an account?",
+    "signup": "Sign up",
+    "signupTitle": "Create an account",
+    "signupDescription": "Enter your information below to create your account",
+    "name": "Full Name",
+    "confirmPassword": "Confirm Password",
+    "createAccount": "Create Account",
+    "hasAccount": "Already have an account?",
+    "signin": "Sign in",
+    "logout": "Log out"
+  }
 }

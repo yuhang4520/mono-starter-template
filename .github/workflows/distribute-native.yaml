@@ -1,0 +1,101 @@
+name: Distribute verified native artifact
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Successful Package native clients workflow run id
+        required: true
+        type: string
+      source_commit:
+        description: Full 40-character source commit SHA
+        required: true
+        type: string
+      platform:
+        type: choice
+        options: [android, ios]
+        required: true
+      target:
+        description: Android variant name, or ios
+        required: true
+        type: string
+      destination:
+        type: choice
+        options: [s3, testflight]
+        required: true
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: distribute-native-${{ inputs.destination }}-${{ inputs.platform }}-${{ inputs.target }}
+  cancel-in-progress: false
+jobs:
+  distribute:
+    runs-on: ${{ inputs.destination == 'testflight' && 'macos-latest' || 'ubuntu-latest' }}
+    timeout-minutes: 25
+    environment: client-production
+    env:
+      SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+      SOURCE_COMMIT: ${{ inputs.source_commit }}
+      PACK_PLATFORM: ${{ inputs.platform }}
+      TARGET_NAME: ${{ inputs.target }}
+      DESTINATION: ${{ inputs.destination }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate trusted source run
+        id: source
+        uses: actions/github-script@v7
+        env:
+          ENABLE_NATIVE_DISTRIBUTION: ${{ vars.ENABLE_NATIVE_DISTRIBUTION }}
+        with:
+          script: |
+            const { SOURCE_RUN_ID: id, SOURCE_COMMIT: sha, PACK_PLATFORM: platform, TARGET_NAME: target } = process.env;
+            if (process.env.ENABLE_NATIVE_DISTRIBUTION !== 'true') throw new Error('Native distribution is disabled');
+            if (context.ref !== 'refs/heads/main') throw new Error('Distribution must run from main');
+            if (!/^\d+$/.test(id) || !/^[a-f0-9]{40}$/.test(sha) || !/^[a-z0-9-]{1,40}$/.test(target)) throw new Error('Invalid source input');
+            if (process.env.DESTINATION === 'testflight' && platform !== 'ios') throw new Error('TestFlight requires iOS');
+            const { data: run } = await github.rest.actions.getWorkflowRun({ ...context.repo, run_id: Number(id) });
+            const repository = `${context.repo.owner}/${context.repo.repo}`;
+            require('./scripts/native/source-run.cjs').verifySourceRun(run, { sha, repository });
+            const name = `native-${platform}-${target}-${run.run_attempt}`;
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, { ...context.repo, run_id: Number(id) });
+            const matches = artifacts.filter(artifact => artifact.name === name && !artifact.expired);
+            if (matches.length !== 1) throw new Error('Expected exactly one unexpired artifact from the current source run attempt');
+            core.setOutput('artifact', name);
+            core.setOutput('attempt', String(run.run_attempt));
+            core.setOutput('number', String(run.run_number));
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.source.outputs.artifact }}
+          path: release
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/setup-java@v4
+        if: inputs.platform == 'android'
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        if: inputs.platform == 'android'
+      - name: Check APK manifest reader
+        if: inputs.platform == 'android'
+        run: command -v apkanalyzer
+      - name: Verify package provenance and bytes
+        env:
+          SOURCE_RUN_ATTEMPT: ${{ steps.source.outputs.attempt }}
+          SOURCE_RUN_NUMBER: ${{ steps.source.outputs.number }}
+        run: python3 scripts/native/verify_distribution.py
+      - name: Distribute selected artifact
+        env:
+          SOURCE_RUN_ATTEMPT: ${{ steps.source.outputs.attempt }}
+          SOURCE_RUN_NUMBER: ${{ steps.source.outputs.number }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.CLIENT_STORAGE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CLIENT_STORAGE_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.CLIENT_STORAGE_SESSION_TOKEN }}
+          AWS_DEFAULT_REGION: ${{ vars.CLIENT_STORAGE_REGION }}
+          STORAGE_ENDPOINT: ${{ vars.CLIENT_STORAGE_ENDPOINT }}
+          STORAGE_BUCKET: ${{ vars.CLIENT_STORAGE_BUCKET }}
+          STORAGE_PREFIX: ${{ vars.CLIENT_NATIVE_PREFIX || 'native' }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY_BASE64: ${{ secrets.ASC_API_KEY_BASE64 }}
+        run: python3 scripts/native/distribute.py

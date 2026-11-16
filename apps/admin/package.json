@@ -3,11 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/next.cjs dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node scripts/next.cjs start",
     "lint": "eslint",
-    "auth:schema": "pnpx @better-auth/cli@latest generate --config ./lib/auth.ts --output ../../packages/db/src/auth-schema.ts"
+    "auth:schema": "pnpx @better-auth/cli@latest generate --config ./lib/auth.ts --output ../../packages/db/src/auth-schema.ts",
+    "type-check": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "catalog:",
@@ -49,7 +51,8 @@
     "sonner": "catalog:",
     "tailwind-merge": "catalog:",
     "vaul": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@your-project/workspace": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "catalog:",
@@ -63,6 +66,7 @@
     "tailwindcss": "catalog:",
     "tsx": "catalog:",
     "tw-animate-css": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "pg": "catalog:"
   }
 }

@@ -1,4 +1,13 @@
-import { auth } from "@/lib/auth"; // path to your auth file
-import { toNextJsHandler } from "better-auth/next-js";
+import { auth } from '@/lib/auth'
+import { workspace } from '@your-project/workspace'
+import { createAuthHttpBoundary } from '@/lib/auth-http-boundary'
 
-export const { POST, GET } = toNextJsHandler(auth);
+const handler = createAuthHttpBoundary({
+  handle: request => auth.handler(request),
+  getSession: headers => auth.api.getSession({ headers, query: { disableCookieCache: true } }),
+  getUser: workspace.getUser,
+  requireMember: workspace.requireMember,
+})
+
+export const GET = handler
+export const POST = handler

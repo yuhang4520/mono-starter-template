@@ -1,19 +1,14 @@
-import { db } from "db/client";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { betterAuth } from "better-auth/minimal";
-import { nextCookies } from "better-auth/next-js";
-import {
-  admin as adminPlugin,
-  organization,
-  phoneNumber,
-  username,
-} from "better-auth/plugins";
+import { db } from 'db/client'
+import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { betterAuth } from 'better-auth/minimal'
+import { nextCookies } from 'better-auth/next-js'
+import { admin as adminPlugin, organization, phoneNumber, username } from 'better-auth/plugins'
 import {
   platformAccessControl,
   platformRoles,
   tenantAccessControl,
   tenantRoles,
-} from "./permissions";
+} from './permissions'
 
 /**
  * Better Auth 配置
@@ -25,19 +20,18 @@ import {
  * - organization: 多租户/组织管理
  *
  * ## 环境变量
- * - ADMIN_PHONE: 设置为管理员的手机号
  * - BETTER_AUTH_URL: 认证回调地址
  * - BETTER_AUTH_SECRET: 认证密钥
  * - DATABASE_URL: 数据库连接
  */
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
-    provider: "pg",
+    provider: 'pg',
     usePlural: true,
   }),
   advanced: {
     database: {
-      generateId: "uuid",
+      generateId: 'uuid',
     },
   },
   plugins: [
@@ -55,7 +49,7 @@ export const auth = betterAuth({
   ],
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 6,
+    minPasswordLength: 8,
   },
   databaseHooks: {
     user: {
@@ -64,15 +58,13 @@ export const auth = betterAuth({
           return {
             data: {
               ...user,
-              /**
-               * @description 检查 ADMIN_PHONE 环境变量，匹配则设置为 admin 角色
-               */
-              role:
-                process.env.ADMIN_PHONE === user.phoneNumber ? "admin" : "user",
+              // Public signup never grants administrative privileges.
+              // Provision the first administrator with the explicit bootstrap CLI.
+              role: 'user',
             },
-          };
+          }
         },
       },
     },
   },
-});
+})

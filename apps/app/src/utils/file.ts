@@ -64,7 +64,7 @@ export function readFileAsBuffer(filePath: string): Promise<ArrayBuffer> {
             reader.onerror = (err: any) => {
               clearAndReject(new Error(`Android 文件读取出错: ${err.message}`))
             }
-              ; (reader as any).readAsDataURL(file)
+            ; (reader as any).readAsDataURL(file)
           }, (err: any) => clearAndReject(new Error(`获取文件对象失败: ${err.message}`)))
         }, (err: any) => clearAndReject(new Error(`定位文件失败: ${err.message}`)))
       }
@@ -80,8 +80,8 @@ export function readFileAsBuffer(filePath: string): Promise<ArrayBuffer> {
           reader.onerror = (err: any) => {
             clearAndReject(new Error(`iOS 文件读取出错: ${err.message}`))
           }
-            // 虽然之前有卡顿报告，但在 iOS 上 readAsArrayBuffer 是标准写法
-            ; (reader as any).readAsArrayBuffer(file)
+          // 虽然之前有卡顿报告，但在 iOS 上 readAsArrayBuffer 是标准写法
+          ; (reader as any).readAsArrayBuffer(file)
         }, (err: any) => clearAndReject(new Error(`获取文件对象失败: ${err.message}`)))
       }, (err: any) => clearAndReject(new Error(`定位文件失败: ${err.message}`)))
     }

@@ -13,4 +13,9 @@ interface ImportMetaEnv {
   /** 是否显示源码 */
   readonly VITE_SHOW_SOURCEMAP: 'true' | 'false'
   readonly VITE_SERVER_URL: string
+  readonly VITE_DEPLOY_ENV?: 'local' | 'production'
+  readonly VITE_APP_VERSION?: string
+  readonly VITE_PRIVACY_URL?: string
+  readonly VITE_AGREEMENT_URL?: string
+  readonly VITE_LEGAL_VERSION?: string
 }

@@ -1,0 +1,142 @@
+name: Package native clients
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        type: choice
+        options: [both, android, ios]
+        default: both
+permissions:
+  contents: read
+concurrency:
+  group: native-packaging
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      android: ${{ steps.plan.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate explicit opt-in
+        env:
+          ENABLE_NATIVE_PACKAGING: ${{ vars.ENABLE_NATIVE_PACKAGING }}
+        run: |
+          test "$ENABLE_NATIVE_PACKAGING" = true || { echo 'Native packaging is disabled'; exit 1; }
+          test "$GITHUB_REF" = refs/heads/main || { echo 'Package main before production distribution'; exit 1; }
+      - id: plan
+        if: inputs.platform != 'ios'
+        env:
+          ANDROID_VARIANTS_JSON: ${{ vars.ANDROID_VARIANTS_JSON }}
+        run: python3 scripts/native/plan.py
+  android:
+    needs: plan
+    if: inputs.platform != 'ios'
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    environment: client-production
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        target: ${{ fromJSON(needs.plan.outputs.android) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-project
+      - run: python3 -B -m unittest discover -s scripts/native -p 'test_*.py'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Check APK manifest reader
+        run: command -v apkanalyzer
+      - name: Package Android variant
+        env:
+          VITE_DEPLOY_ENV: production
+          PACK_PLATFORM: android
+          TARGET_NAME: ${{ matrix.target.name }}
+          BUNDLE_ID: ${{ matrix.target.bundle }}
+          APP_NAME: ${{ vars.APP_NAME }}
+          DCLOUD_APP_ID: ${{ vars.DCLOUD_APP_ID }}
+          HX_VERSION: ${{ vars.HX_VERSION }}
+          HX_SHA256: ${{ vars.HX_SHA256 }}
+          PRIVACY_URL: ${{ vars.PRIVACY_URL }}
+          AGREEMENT_URL: ${{ vars.AGREEMENT_URL }}
+          LEGAL_VERSION: ${{ vars.LEGAL_VERSION }}
+          VITE_PRIVACY_URL: ${{ vars.PRIVACY_URL }}
+          VITE_AGREEMENT_URL: ${{ vars.AGREEMENT_URL }}
+          VITE_LEGAL_VERSION: ${{ vars.LEGAL_VERSION }}
+          VITE_SERVER_URL: ${{ vars.PUBLIC_API_URL }}
+          DCLOUD_USERNAME: ${{ secrets.DCLOUD_USERNAME }}
+          DCLOUD_PASSWORD: ${{ secrets.DCLOUD_PASSWORD }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: bash scripts/native/package.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-android-${{ matrix.target.name }}-${{ github.run_attempt }}
+          path: |
+            dist/app.apk
+            dist/metadata.json
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: native-error-android-${{ matrix.target.name }}-${{ github.run_attempt }}
+          path: |
+            result/error_*
+            result/public_pack.log
+          if-no-files-found: ignore
+  ios:
+    needs: plan
+    if: inputs.platform != 'android'
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    environment: client-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-project
+      - run: python3 -B -m unittest discover -s scripts/native -p 'test_*.py'
+      - name: Package iOS
+        env:
+          VITE_DEPLOY_ENV: production
+          PACK_PLATFORM: ios
+          TARGET_NAME: ios
+          BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID }}
+          APP_NAME: ${{ vars.APP_NAME }}
+          DCLOUD_APP_ID: ${{ vars.DCLOUD_APP_ID }}
+          HX_VERSION: ${{ vars.HX_VERSION }}
+          HX_SHA256: ${{ vars.HX_SHA256 }}
+          PRIVACY_URL: ${{ vars.PRIVACY_URL }}
+          AGREEMENT_URL: ${{ vars.AGREEMENT_URL }}
+          LEGAL_VERSION: ${{ vars.LEGAL_VERSION }}
+          VITE_PRIVACY_URL: ${{ vars.PRIVACY_URL }}
+          VITE_AGREEMENT_URL: ${{ vars.AGREEMENT_URL }}
+          VITE_LEGAL_VERSION: ${{ vars.LEGAL_VERSION }}
+          VITE_SERVER_URL: ${{ vars.PUBLIC_API_URL }}
+          DCLOUD_USERNAME: ${{ secrets.DCLOUD_USERNAME }}
+          DCLOUD_PASSWORD: ${{ secrets.DCLOUD_PASSWORD }}
+          IOS_P12_BASE64: ${{ secrets.IOS_P12_BASE64 }}
+          IOS_PROFILE_BASE64: ${{ secrets.IOS_PROFILE_BASE64 }}
+          IOS_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+        run: bash scripts/native/package.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-ios-ios-${{ github.run_attempt }}
+          path: |
+            dist/app.ipa
+            dist/metadata.json
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: native-error-ios-${{ github.run_attempt }}
+          path: |
+            result/error_*
+            result/public_pack.log
+          if-no-files-found: ignore

@@ -1,49 +1,41 @@
-import { useUserStore } from '@/store'
-import { getAccessToken } from '@/utils/auth'
+import { getAccessToken } from './auth'
+import { needsLaunchConsent } from './legal'
+import { isPublicPage, LEGAL_PAGE, PRIVACY_PAGE } from './legal-core'
 
-const LOGIN_PAGE = '/pages/login/login'
-const whiteList = [LOGIN_PAGE]
+export const LOGIN_PAGE = '/pages/login/login'
+export const HOME_PAGE = '/pages/index/index'
 
-function needAuth(url: string) {
-  const purePath = url.split(/[?#]/)[0]
-
-  return !whiteList.includes(purePath)
-}
-
-function isLogin() {
-  const userStore = useUserStore()
-  const token = getAccessToken()
-
-  return !!token && !!userStore.userInfo.id && userStore.userInfo.id !== '-1'
-}
-
-function hasUrl(args: unknown): args is { url: string } {
-  return typeof args === 'object' && args !== null && 'url' in args && typeof (args as any).url === 'string'
-}
-
-function handleInvoke(args: unknown) {
-  if (!hasUrl(args)) {
-    return true
-  }
-  if (needAuth(args.url) && !isLogin()) {
-    uni.navigateTo({
-      url: `${LOGIN_PAGE}?redirect=${encodeURIComponent(args.url)}`,
-    })
+export function requireLogin(): boolean {
+  if (needsLaunchConsent()) {
+    uni.reLaunch({ url: PRIVACY_PAGE })
 
     return false
   }
-  console.log('允许跳转 handleInvoke')
+  if (getAccessToken())
+    return true
+  uni.reLaunch({ url: LOGIN_PAGE })
 
-  return true
+  return false
 }
 
 export function setupAuthInterceptor() {
-  const methods = ['navigateTo', 'redirectTo', 'reLaunch', 'switchTab'] as const
-  methods.forEach((method) => {
+  for (const method of ['navigateTo', 'redirectTo', 'reLaunch', 'switchTab'] as const) {
     uni.addInterceptor(method, {
-      invoke(args) {
-        return handleInvoke(args)
+      invoke(args: { url?: string }) {
+        if (!args.url)
+          return true
+        const path = args.url.split(/[?#]/)[0]
+        if (needsLaunchConsent() && path !== PRIVACY_PAGE && path !== LEGAL_PAGE) {
+          uni.reLaunch({ url: PRIVACY_PAGE })
+
+          return false
+        }
+        if (isPublicPage(args.url) || getAccessToken())
+          return true
+        uni.reLaunch({ url: LOGIN_PAGE })
+
+        return false
       },
     })
-  })
+  }
 }

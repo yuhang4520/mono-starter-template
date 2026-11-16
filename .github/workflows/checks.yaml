@@ -1,0 +1,70 @@
+name: Checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: template-ci-db
+          POSTGRES_DB: scaffold_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d scaffold_test"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgres://postgres:template-ci-db@127.0.0.1:5432/scaffold_test
+      TEST_DATABASE_URL: postgres://postgres:template-ci-db@127.0.0.1:5432/scaffold_test
+      AUTH_SECRET: ci-only-auth-secret-at-least-32-characters
+      AUTH_URL: http://localhost:4000
+      BETTER_AUTH_SECRET: ci-only-better-auth-secret-at-least-32-characters
+      BETTER_AUTH_URL: http://localhost:3000
+      VITE_SERVER_URL: http://localhost:4000
+      NEXT_TELEMETRY_DISABLED: '1'
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: template-ci-storage
+      S3_REGION: us-east-1
+      S3_BUCKET: starter-files
+      S3_ACCESS_KEY_ID: minio
+      S3_SECRET_ACCESS_KEY: template-ci-storage
+      TEST_S3_ENDPOINT: http://127.0.0.1:9000
+      COMPOSE_PROJECT_NAME: template-ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-project
+      - name: Start disposable private object storage
+        run: |
+          docker compose up -d --wait minio
+          docker compose run --rm minio_init
+      - run: pnpm db:migrate
+      - run: pnpm type-check
+      - run: pnpm test
+      - name: Verify workflows and deployment configuration
+        run: node scripts/check-workflows.cjs
+      - name: Lint maintained application code
+        run: pnpm --dir apps/admin lint && pnpm --dir apps/app lint
+      - run: pnpm build
+      - name: Verify mini-program output budget
+        run: node scripts/check-package-size.mjs apps/app/dist/build/mp-weixin
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.2
+      - name: Validate optional Kubernetes configuration without a cluster
+        run: |
+          terraform -chdir=infra/k8s fmt -check
+          terraform -chdir=infra/k8s init -backend=false
+          terraform -chdir=infra/k8s validate
+      - name: Stop disposable object storage
+        if: always()
+        run: docker compose down --volumes
